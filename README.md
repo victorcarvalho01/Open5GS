@@ -12,7 +12,6 @@ Você pode copiar e colar esse conteúdo diretamente no GitHub ao criar um novo 
 
 ## Atualização inicial e instalação de utilitários
 
-```bash
 sudo apt-get update
 sudo apt-get install -y gnupg wget curl
 ````
