@@ -22,7 +22,7 @@ wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add 
 echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
 ```
 
-### Você pode forçar a instalação do `libssl1.1` adicionando a fonte (repositório) do Ubuntu 20.04:
+### Você pode forçar a instalação do `libssl1.1` adicionando a fonte (repositório) em versões acima do Ubuntu 20.04:
 
 ```bash
 echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
