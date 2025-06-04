@@ -1,10 +1,6 @@
 # Open5GS
 Este guia auxilia na instalação do Open5GS e UERANSIM em uma VM Ubuntu para simulação de redes 5G SA. Inclui a configuração do MongoDB, Node.js, Net-tools, plugin RLS para Wireshark e dependências necessárias para a compilação e execução dos componentes.
 
-Excelente! Esse passo a passo está ótimo para um repositório GitHub — especialmente se for colocado em um arquivo `README.md` com formatação em **Markdown**. Abaixo, já converti seu conteúdo com a formatação adequada para o GitHub, com títulos, comandos destacados e blocos de código bem organizados.
-
-Você pode copiar e colar esse conteúdo diretamente no GitHub ao criar um novo arquivo chamado `README.md`:
-
 ---
 
 ````markdown
