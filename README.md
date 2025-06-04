@@ -173,11 +173,3 @@ cd ~/ueransim/UERANSIM/config
 ```bash
 ../build/nr-ue -c ue1.yaml
 ```
-
----
-
-### ✅ Pronto!
-
-Você pode agora subir este conteúdo no GitHub criando um novo arquivo chamado `README.md` no seu repositório e colando este conteúdo lá.
-
-Se quiser, posso te ajudar a criar esse repositório passo a passo no GitHub também. Deseja isso?
