@@ -131,8 +131,11 @@ sudo gedit ue1.yaml &
 
 ### Editar `ue1.yaml`
 
-* `imsi`: 999700000000001
 * `gnbSearchList`: 127.0.0.101
+
+### Guardar o IMSI
+
+* `imsi`: 999700000000001
 
 ---
 
