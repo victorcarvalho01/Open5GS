@@ -1,0 +1,210 @@
+#include <WiFi.h>
+
+// ------------ PINOS DOS SENSORES (ENTRADA) --------------
+#define pinSensorD 32
+#define pinSensorE 33
+
+// ------------ PINOS DOS MOTORES (SAÍDA PWM) --------------
+#define pinMotorE1 26
+#define pinMotorE2 14
+#define pinMotorD1 12
+#define pinMotorD2 13
+
+#define velocidade 150     // Velocidade reta
+#define velocidadeCurva 80 // Velocidade da roda de dentro da curva
+
+// ------------ PINOS DOS EFEITOS (LEDs e BUZZER) --------------
+#define pinLED 25
+#define pinBuzzer 27
+
+// ------------ CONFIG Wi-Fi --------------
+const char* ssid = "POCO";
+const char* password = "123456788";
+
+WiFiServer server(80); 
+WiFiClient client;
+
+// ------------ CANAIS PWM DO ESP32 --------------
+#define canalE1 0
+#define canalE2 1
+#define canalD1 2
+#define canalD2 3
+
+// ------------ CONTADOR DE PARADAS --------------
+volatile int contadorParada = 0;
+bool bloqueado = false;
+bool ignorarWifi = false;
+
+// ------------ ALERTA (LED + BUZZER) --------------
+void efeitoAlerta(int tempoMs, bool manterLigadoApos = false) {
+
+  unsigned long inicio = millis();
+
+  while (millis() - inicio < tempoMs) {
+    digitalWrite(pinLED, HIGH);
+    digitalWrite(pinBuzzer, HIGH);
+    delay(300);
+
+    digitalWrite(pinLED, LOW);
+    digitalWrite(pinBuzzer, LOW);
+    delay(300);
+  }
+
+  if (manterLigadoApos) {
+    digitalWrite(pinLED, HIGH);
+    digitalWrite(pinBuzzer, HIGH);
+  } else {
+    digitalWrite(pinLED, LOW);
+    digitalWrite(pinBuzzer, LOW);
+  }
+}
+
+// ------------ MOVIMENTO --------------
+void frente() {
+  ledcWrite(canalD2, 0);
+  ledcWrite(canalD1, velocidade);
+
+  ledcWrite(canalE1, 0);
+  ledcWrite(canalE2, velocidade);
+}
+
+void parar() {
+  ledcWrite(canalD1, 0);
+  ledcWrite(canalD2, 0);
+  ledcWrite(canalE1, 0);
+  ledcWrite(canalE2, 0);
+}
+
+void virarDireita() {
+  // Direita lenta / esquerda rápida
+  ledcWrite(canalD1, velocidadeCurva);
+  ledcWrite(canalD2, 0);
+
+  ledcWrite(canalE1, 0);
+  ledcWrite(canalE2, velocidade);
+}
+
+void virarEsquerda() {
+  // Direita rápida / esquerda lenta
+  ledcWrite(canalD1, velocidade);
+  ledcWrite(canalD2, 0);
+
+  ledcWrite(canalE1, velocidadeCurva);
+  ledcWrite(canalE2, 0);
+}
+
+// --------------------------------------------------
+
+void setup() {
+
+  pinMode(pinSensorD, INPUT);
+  pinMode(pinSensorE, INPUT);
+
+  pinMode(pinLED, OUTPUT);
+  pinMode(pinBuzzer, OUTPUT);
+
+  // PWM
+  ledcSetup(canalE1, 5000, 8);
+  ledcSetup(canalE2, 5000, 8);
+  ledcSetup(canalD1, 5000, 8);
+  ledcSetup(canalD2, 5000, 8);
+
+  ledcAttachPin(pinMotorE1, canalE1);
+  ledcAttachPin(pinMotorE2, canalE2);
+  ledcAttachPin(pinMotorD1, canalD1);
+  ledcAttachPin(pinMotorD2, canalD2);
+
+  Serial.begin(115200);
+
+  Serial.println("Conectando ao WiFi...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nConectado!");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
+}
+
+// --------------------------------------------------
+
+void loop() {
+
+  if (bloqueado) return;
+
+  // --- LEITURA DOS SENSORES ---
+  bool direita = !digitalRead(pinSensorD); // 1 = linha
+  bool esquerda = !digitalRead(pinSensorE);
+
+  // --- LÓGICA DO SEGUIDOR DE LINHA ---
+  if (direita && esquerda) frente();
+  else if (!direita && !esquerda) parar();
+  else if (!direita && esquerda) virarDireita();
+  else if (direita && !esquerda) virarEsquerda();
+
+  // --- RECEBIMENTO DE COMANDOS ---
+
+  if (ignorarWifi) return;
+
+  if (!client || !client.connected()) {
+    client = server.available();
+    return;
+  }
+
+  if (client.available()) {
+
+    String msg = client.readStringUntil('\n');
+    msg.trim();
+    Serial.println("Recebido: " + msg);
+
+    int sep = msg.indexOf(',');
+
+    if (sep > 0) {
+      String command = msg.substring(0, sep);
+
+      if (command == "PARAR") {
+
+        contadorParada++;
+        Serial.print("PARADA nº ");
+        Serial.println(contadorParada);
+
+        if (contadorParada == 1) {
+          ignorarWifi = true;
+          efeitoAlerta(3000);
+          ignorarWifi = false;
+        }
+        else if (contadorParada == 2) {
+          ignorarWifi = true;
+          efeitoAlerta(3000);
+          ignorarWifi = false;
+        }
+        else if (contadorParada == 3) {
+
+          unsigned long t0 = millis();
+
+          while (millis() - t0 < 3000) {
+            int reducao = map(millis() - t0, 0, 3000, velocidade, 0);
+            reducao = max(reducao, 0);
+
+            ledcWrite(canalD1, reducao);
+            ledcWrite(canalE2, reducao);
+
+            digitalWrite(pinLED, ((millis()/400)%2));
+            digitalWrite(pinBuzzer, ((millis()/400)%2));
+
+            delay(10);
+          }
+
+          parar();
+          efeitoAlerta(0, true);
+          bloqueado = true;
+        }
+        return;
+      }
+    }
+  }
+}
